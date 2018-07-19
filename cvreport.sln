@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2042
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cvreport", "cvreport\cvreport.vcxproj", "{E64E1FEE-9B44-42E0-AEEE-AD2D7AE2F794}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E64E1FEE-9B44-42E0-AEEE-AD2D7AE2F794}.Debug|x64.ActiveCfg = Debug|x64
+		{E64E1FEE-9B44-42E0-AEEE-AD2D7AE2F794}.Debug|x64.Build.0 = Debug|x64
+		{E64E1FEE-9B44-42E0-AEEE-AD2D7AE2F794}.Debug|x86.ActiveCfg = Debug|Win32
+		{E64E1FEE-9B44-42E0-AEEE-AD2D7AE2F794}.Debug|x86.Build.0 = Debug|Win32
+		{E64E1FEE-9B44-42E0-AEEE-AD2D7AE2F794}.Release|x64.ActiveCfg = Release|x64
+		{E64E1FEE-9B44-42E0-AEEE-AD2D7AE2F794}.Release|x64.Build.0 = Release|x64
+		{E64E1FEE-9B44-42E0-AEEE-AD2D7AE2F794}.Release|x86.ActiveCfg = Release|Win32
+		{E64E1FEE-9B44-42E0-AEEE-AD2D7AE2F794}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {463E46BE-1D47-4C89-BAC8-F0DDB3A6970A}
+	EndGlobalSection
+EndGlobal
