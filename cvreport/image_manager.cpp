@@ -9,6 +9,6 @@ std::tuple<std::string, std::string> ImageManager::GetStereoVideoPath(
   return std::make_tuple(left_path.string(), right_path.string());
 }
 
-fs::path ImageManager::GetImagePath(std::string filename) {
-  return root / filename;
+std::string ImageManager::GetImagePath(std::string filename) {
+  return (root / filename).string();
 }

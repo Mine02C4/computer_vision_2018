@@ -11,7 +11,7 @@ class ImageManager {
  public:
   static std::tuple<std::string, std::string> GetStereoVideoPath(
       std::string basename);
-  static fs::path GetImagePath(std::string filename);
+  static std::string GetImagePath(std::string filename);
 
  private:
   static fs::path root;

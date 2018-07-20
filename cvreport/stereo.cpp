@@ -156,13 +156,11 @@ void Stereo::SetData(cv::Mat& img3d) {
 }
 
 std::string StereoTest::GetLeftImagePath(int i) {
-  return ImageManager::GetImagePath("stereo_cboard_" + to_string(i) + "_l.png")
-      .string();
+  return ImageManager::GetImagePath("stereo_cboard_" + to_string(i) + "_l.png");
 }
 
 std::string StereoTest::GetRightImagePath(int i) {
-  return ImageManager::GetImagePath("stereo_cboard_" + to_string(i) + "_r.png")
-      .string();
+  return ImageManager::GetImagePath("stereo_cboard_" + to_string(i) + "_r.png");
 }
 
 void StereoTest::Run() {
