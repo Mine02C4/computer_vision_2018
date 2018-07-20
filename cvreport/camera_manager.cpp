@@ -30,11 +30,24 @@ StereoCapture CameraManager::GetStereoCapture() {
   return std::make_tuple(left_cap, right_cap);
 }
 
-IntrinsicsParameter::IntrinsicsParameter(std::string name) {
+CameraParameter::CameraParameter(std::string name) {
+  path_ = CameraManager::parameter_root_ / (name + ".xml");
+}
+
+bool CameraParameter::ReadFile() {
+  using namespace cv;
+  FileStorage fs(path_.string(), FileStorage::READ);
+  if (fs.isOpened()) {
+    fs["cameraMatrix"] >> cameraMatrix;
+    fs["distCoeffs"] >> distCoeffs;
+  }
+}
+
+StereoIntrinsicsParameter::StereoIntrinsicsParameter(std::string name) {
   path_ = CameraManager::parameter_root_ / (name + "_intrinsics.xml");
 }
 
-bool IntrinsicsParameter::ReadFile() {
+bool StereoIntrinsicsParameter::ReadFile() {
   using namespace cv;
   FileStorage fs(path_.string(), FileStorage::READ);
   if (fs.isOpened()) {
@@ -42,17 +55,26 @@ bool IntrinsicsParameter::ReadFile() {
     fs["M2"] >> cameraMatrix[1];
     fs["D1"] >> distCoeffs[0];
     fs["D2"] >> distCoeffs[1];
+    fs.release();
     return true;
   } else {
     return false;
   }
 }
 
-ExtrinsicsParameter::ExtrinsicsParameter(std::string name) {
+void StereoIntrinsicsParameter::SetByCameraParameters(CameraParameter left,
+  CameraParameter right) {
+  cameraMatrix[0] = right.cameraMatrix;
+  cameraMatrix[1] = left.cameraMatrix;
+  distCoeffs[0] = right.distCoeffs;
+  distCoeffs[1] = left.distCoeffs;
+}
+
+StereoExtrinsicsParameter::StereoExtrinsicsParameter(std::string name) {
   path_ = CameraManager::parameter_root_ / (name + "_extrinsics.xml");
 }
 
-bool ExtrinsicsParameter::ReadFile() {
+bool StereoExtrinsicsParameter::ReadFile() {
   using namespace cv;
   FileStorage fs(path_.string(), FileStorage::READ);
   if (fs.isOpened()) {
@@ -65,6 +87,7 @@ bool ExtrinsicsParameter::ReadFile() {
     fs["Q"] >> Q;
     fs["vroi0"] >> validRoi[0];
     fs["vroi1"] >> validRoi[1];
+    fs.release();
     return true;
   } else {
     return false;

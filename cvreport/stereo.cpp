@@ -9,6 +9,7 @@
 #include <GL/freeglut.h>
 
 #include "calibration.hpp"
+#include "camera_manager.hpp"
 #include "image_manager.hpp"
 
 using namespace cv;
@@ -171,8 +172,6 @@ void StereoTest::Run() {
   const int N_BOARDS = 10;
   const float SCALE = 23;
 
-  vector<string> calibfiles = {"calibration_r.xml", "calibration_l.xml"};
-
   vector<Mat> src_image(N_BOARDS * 2);
   bool files_exist = true;
   for (int i = 0; i < N_BOARDS; i++) {
@@ -202,7 +201,7 @@ void StereoTest::Run() {
       objectCorners.push_back(Point3f(i * SCALE, j * SCALE, 0.0f));
     }
   }
-  Mat R, T, E, F;
+  Mat E, F;
 
   if (files_exist) {
     int input;
@@ -316,14 +315,14 @@ void StereoTest::Run() {
     }
   }
 
-  Mat cameraMatrix[2], distCoeffs[2];
-  Mat R1, R2, P1, P2, Q;
-  Rect validRoi[2];
+  // Mat cameraMatrix[2], distCoeffs[2];
+  // Mat R1, R2, P1, P2, Q;
+  // Rect validRoi[2];
+  StereoIntrinsicsParameter i_param("bf");
+  StereoExtrinsicsParameter e_param("bf");
   bool calibrated = false;
   if (files_exist) {
-    FileStorage fsi("intrinsics.xml", FileStorage::READ);
-    FileStorage fse("extrinsics.xml", FileStorage::READ);
-    if (fsi.isOpened() && fse.isOpened()) {
+    if (i_param.ReadFile() && e_param.ReadFile()) {
       int input;
       cout << "Calibration data are already exist." << endl;
       cout << "1: Use the calibration data" << endl;
@@ -331,19 +330,6 @@ void StereoTest::Run() {
       cin >> input;
       switch (input) {
         case 1: {
-          fsi["M1"] >> cameraMatrix[0];
-          fsi["M2"] >> cameraMatrix[1];
-          fsi["D1"] >> distCoeffs[0];
-          fsi["D2"] >> distCoeffs[1];
-          fse["R"] >> R;
-          fse["T"] >> T;
-          fse["R1"] >> R1;
-          fse["R2"] >> R2;
-          fse["P1"] >> P1;
-          fse["P2"] >> P2;
-          fse["Q"] >> Q;
-          fse["vroi0"] >> validRoi[0];
-          fse["vroi1"] >> validRoi[1];
           calibrated = true;
           break;
         }
@@ -353,34 +339,30 @@ void StereoTest::Run() {
           cerr << "Invalid input" << endl;
           exit(1);
       }
-      fsi.release();
-      fse.release();
     }
   }
   Size imageSize = src_image[0].size();
   if (!calibrated) {
-    FileStorage fs0(calibfiles[0], FileStorage::READ);
-    FileStorage fs1(calibfiles[1], FileStorage::READ);
-    if (!fs0.isOpened() || !fs1.isOpened()) {
+    CameraParameter right_cp("calibration_r");
+    CameraParameter left_cp("calibration_l");
+    if (!left_cp.ReadFile() || !right_cp.ReadFile()) {
       cerr << "Cannot open calibration XML" << endl;
       exit(1);
     }
-    fs0["cameraMatrix"] >> cameraMatrix[0];
-    fs1["cameraMatrix"] >> cameraMatrix[1];
-    fs0["distCoeffs"] >> distCoeffs[0];
-    fs1["distCoeffs"] >> distCoeffs[1];
+    i_param.SetByCameraParameters(left_cp, right_cp);
 
     for (int i = 0; i < N_BOARDS; i++) {
       objectPoints.push_back(objectCorners);
     }
     double rms = stereoCalibrate(
-        objectPoints, imagePoints[0], imagePoints[1], cameraMatrix[0],
-        distCoeffs[0], cameraMatrix[1], distCoeffs[1], imageSize, R, T, E, F,
+        objectPoints, imagePoints[0], imagePoints[1], i_param.cameraMatrix[0],
+        i_param.distCoeffs[0], i_param.cameraMatrix[1], i_param.distCoeffs[1],
+        imageSize, e_param.R, e_param.T, E, F,
         CALIB_FIX_ASPECT_RATIO + CALIB_ZERO_TANGENT_DIST + CALIB_FIX_INTRINSIC +
             CALIB_SAME_FOCAL_LENGTH + CALIB_RATIONAL_MODEL + CALIB_FIX_K3 +
             CALIB_FIX_K4 + CALIB_FIX_K5,
         TermCriteria(TermCriteria::COUNT + TermCriteria::EPS, 100, 1e-5));
-    cout << "done with RMS error=" << rms << endl;
+    cout << "RMS error = " << rms << endl;
 
     // Error check
     double err = 0;
@@ -391,8 +373,8 @@ void StereoTest::Run() {
       Mat imgpt[2];
       for (int k = 0; k < 2; k++) {
         imgpt[k] = Mat(imagePoints[k][i]);
-        undistortPoints(imgpt[k], imgpt[k], cameraMatrix[k], distCoeffs[k],
-                        Mat(), cameraMatrix[k]);
+        undistortPoints(imgpt[k], imgpt[k], i_param.cameraMatrix[k],
+                        i_param.distCoeffs[k], Mat(), i_param.cameraMatrix[k]);
         computeCorrespondEpilines(imgpt[k], k + 1, F, lines[k]);
       }
       for (int j = 0; j < npt; j++) {
@@ -410,24 +392,26 @@ void StereoTest::Run() {
     // save intrinsic parameters
     FileStorage fs("intrinsics.xml", FileStorage::WRITE);
     if (fs.isOpened()) {
-      fs << "M1" << cameraMatrix[0] << "D1" << distCoeffs[0] << "M2"
-         << cameraMatrix[1] << "D2" << distCoeffs[1];
+      fs << "M1" << i_param.cameraMatrix[0] << "D1" << i_param.distCoeffs[0]
+         << "M2" << i_param.cameraMatrix[1] << "D2" << i_param.distCoeffs[1];
       fs.release();
     } else {
       cerr << "Error: can not save the intrinsic parameters" << endl;
     }
 
-    stereoRectify(cameraMatrix[0], distCoeffs[0], cameraMatrix[1],
-                  distCoeffs[1], imageSize, R, T, R1, R2, P1, P2, Q,
-                  CALIB_ZERO_DISPARITY, 1, imageSize, &validRoi[0],
-                  &validRoi[1]);
+    stereoRectify(i_param.cameraMatrix[0], i_param.distCoeffs[0],
+                  i_param.cameraMatrix[1], i_param.distCoeffs[1], imageSize,
+                  e_param.R, e_param.T, e_param.R1, e_param.R2, e_param.P1,
+                  e_param.P2, e_param.Q, CALIB_ZERO_DISPARITY, 1, imageSize,
+                  &e_param.validRoi[0], &e_param.validRoi[1]);
 
     fs.open("extrinsics.xml", FileStorage::WRITE);
     if (fs.isOpened()) {
-      fs << "R" << R << "T" << T << "R1" << R1 << "R2" << R2 << "P1" << P1
-         << "P2" << P2 << "Q" << Q;
-      fs << "vroi0" << validRoi[0];
-      fs << "vroi1" << validRoi[1];
+      fs << "R" << e_param.R << "T" << e_param.T << "R1" << e_param.R1 << "R2"
+         << e_param.R2 << "P1" << e_param.P1 << "P2" << e_param.P2 << "Q"
+         << e_param.Q;
+      fs << "vroi0" << e_param.validRoi[0];
+      fs << "vroi1" << e_param.validRoi[1];
       fs.release();
     } else {
       cerr << "Error: can not save the extrinsic parameters" << endl;
@@ -436,7 +420,8 @@ void StereoTest::Run() {
 
   // OpenCV can handle left-right
   // or up-down camera arrangements
-  bool isVerticalStereo = fabs(P2.at<double>(1, 3)) > fabs(P2.at<double>(0, 3));
+  bool isVerticalStereo =
+      fabs(e_param.P2.at<double>(1, 3)) > fabs(e_param.P2.at<double>(0, 3));
 
   Mat rmap[2][2];
   // IF BY CALIBRATED (BOUGUET'S METHOD)
@@ -461,17 +446,19 @@ void StereoTest::Run() {
     stereoRectifyUncalibrated(Mat(allimgpt[0]), Mat(allimgpt[1]), F, imageSize,
                               H1, H2, 3);
 
-    R1 = cameraMatrix[0].inv() * H1 * cameraMatrix[0];
-    R2 = cameraMatrix[1].inv() * H2 * cameraMatrix[1];
-    P1 = cameraMatrix[0];
-    P2 = cameraMatrix[1];
+    e_param.R1 = i_param.cameraMatrix[0].inv() * H1 * i_param.cameraMatrix[0];
+    e_param.R2 = i_param.cameraMatrix[1].inv() * H2 * i_param.cameraMatrix[1];
+    e_param.P1 = i_param.cameraMatrix[0];
+    e_param.P2 = i_param.cameraMatrix[1];
   }
 
   // Precompute maps for cv::remap()
-  initUndistortRectifyMap(cameraMatrix[0], distCoeffs[0], R1, P1, imageSize,
-                          CV_16SC2, rmap[0][0], rmap[0][1]);
-  initUndistortRectifyMap(cameraMatrix[1], distCoeffs[1], R2, P2, imageSize,
-                          CV_16SC2, rmap[1][0], rmap[1][1]);
+  initUndistortRectifyMap(i_param.cameraMatrix[0], i_param.distCoeffs[0],
+                          e_param.R1, e_param.P1, imageSize, CV_16SC2,
+                          rmap[0][0], rmap[0][1]);
+  initUndistortRectifyMap(i_param.cameraMatrix[1], i_param.distCoeffs[1],
+                          e_param.R2, e_param.P2, imageSize, CV_16SC2,
+                          rmap[1][0], rmap[1][1]);
 
   Mat canvas;
   double sf;
@@ -508,9 +495,10 @@ void StereoTest::Run() {
                                          : canvas(Rect(0, h * k, w, h));
       resize(rimg, canvasPart, canvasPart.size(), 0, 0, INTER_AREA);
       if (useCalibrated) {
-        Rect vroi(cvRound(validRoi[k].x * sf), cvRound(validRoi[k].y * sf),
-                  cvRound(validRoi[k].width * sf),
-                  cvRound(validRoi[k].height * sf));
+        Rect vroi(cvRound(e_param.validRoi[k].x * sf),
+                  cvRound(e_param.validRoi[k].y * sf),
+                  cvRound(e_param.validRoi[k].width * sf),
+                  cvRound(e_param.validRoi[k].height * sf));
         rectangle(canvasPart, vroi, Scalar(0, 0, 255), 3, 8);
       }
     }
@@ -533,7 +521,7 @@ void StereoTest::Run() {
     int numberOfDisparities = Stereo::CalcDisparity(rleft, rright, disparity);
     Stereo::RenderDisparity(disparity, numberOfDisparities);
     Mat img3d;
-    reprojectImageTo3D(disparity, img3d, Q, true);
+    reprojectImageTo3D(disparity, img3d, e_param.Q, true);
     ste.SetData(img3d);
     ste.RenderGLWindow();
 
