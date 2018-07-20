@@ -2,9 +2,13 @@
 
 fs::path ImageManager::root = "images";
 
-std::tuple<fs::path, fs::path> ImageManager::GetStereoVideoPath(std::string basename)
-{
-	auto left_path = root / (basename + "_left.mp4");
-	auto right_path = root / (basename + "_right.mp4");
-	return std::make_tuple(left_path, right_path);
+std::tuple<std::string, std::string> ImageManager::GetStereoVideoPath(
+    std::string basename) {
+  auto left_path = root / (basename + "_left.mp4");
+  auto right_path = root / (basename + "_right.mp4");
+  return std::make_tuple(left_path.string(), right_path.string());
+}
+
+fs::path ImageManager::GetImagePath(std::string filename) {
+  return root / filename;
 }

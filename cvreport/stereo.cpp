@@ -1,5 +1,6 @@
 #include "Stereo.hpp"
 
+#include <filesystem>
 #include <iostream>
 
 #include <opencv2/calib3d/calib3d.hpp>
@@ -7,7 +8,8 @@
 
 #include <GL/freeglut.h>
 
-#include "Calibration.hpp"
+#include "calibration.hpp"
+#include "image_manager.hpp"
 
 using namespace cv;
 using namespace std;
@@ -152,6 +154,16 @@ void Stereo::SetData(cv::Mat& img3d) {
   render();
 }
 
+std::string StereoTest::GetLeftImagePath(int i) {
+  return ImageManager::GetImagePath("stereo_cboard_" + to_string(i) + "_l.png")
+      .string();
+}
+
+std::string StereoTest::GetRightImagePath(int i) {
+  return ImageManager::GetImagePath("stereo_cboard_" + to_string(i) + "_r.png")
+      .string();
+}
+
 void StereoTest::Run() {
   const int BOARD_W = 10;
   const int BOARD_H = 7;
@@ -164,7 +176,7 @@ void StereoTest::Run() {
   vector<Mat> src_image(N_BOARDS * 2);
   bool files_exist = true;
   for (int i = 0; i < N_BOARDS; i++) {
-    src_image[i * 2] = imread("stereo_cboard_" + to_string(i) + "_r.png");
+    src_image[i * 2] = imread(GetRightImagePath(i));
     if (src_image[i * 2].data == NULL) {
       files_exist = false;
       for (i = i * 2 - 1; i >= 0; --i) {
@@ -172,7 +184,7 @@ void StereoTest::Run() {
       }
       break;
     }
-    src_image[i * 2 + 1] = imread("stereo_cboard_" + to_string(i) + "_l.png");
+    src_image[i * 2 + 1] = imread(GetLeftImagePath(i));
     if (src_image[i * 2 + 1].data == NULL) {
       files_exist = false;
       for (i = i * 2; i >= 0; --i) {
@@ -283,10 +295,8 @@ void StereoTest::Run() {
         switch (key) {
           case kOPENCV_KEY_ENTER:  // Enter
             if (found[0] && found[1]) {
-              imwrite("stereo_cboard_" + to_string(i) + "_r.png",
-                      src_image[i * 2]);
-              imwrite("stereo_cboard_" + to_string(i) + "_l.png",
-                      src_image[i * 2 + 1]);
+              imwrite(GetRightImagePath(i), src_image[i * 2]);
+              imwrite(GetLeftImagePath(i), src_image[i * 2 + 1]);
               imagePoints[0].push_back(imageCorners[0]);
               imagePoints[1].push_back(imageCorners[1]);
             } else {
@@ -480,12 +490,11 @@ void StereoTest::Run() {
   bool preview_phase = true;
   int preview_index = 0;
 
-
   // Additional Preview
   const int num_of_image_set = 12;
   for (int i = N_BOARDS; i < num_of_image_set; i++) {
-    src_image.push_back(imread("stereo_cboard_" + to_string(i) + "_r.png"));
-    src_image.push_back(imread("stereo_cboard_" + to_string(i) + "_l.png"));
+    src_image.push_back(imread(GetRightImagePath(i)));
+    src_image.push_back(imread(GetLeftImagePath(i)));
   }
 
   // GLUT
@@ -573,11 +582,11 @@ void motion(int mx, int my) {
     float dX = (float)(mx - last_mouse_x) * 0.01f;
     float dY = (float)(last_mouse_y - my) * 0.01f;
     cv::Mat rVecX, rVecY, rMatX, rMatY;
-    rVecY = dX *
-            currentPose(cv::Rect(1, 0, 1, 3));  // mouse horizontal move -> y-axis rot
+    rVecY = dX * currentPose(cv::Rect(
+                     1, 0, 1, 3));  // mouse horizontal move -> y-axis rot
     cv::Rodrigues(rVecY, rMatY);
-    rVecX =
-        dY * currentPose(cv::Rect(0, 0, 1, 3));  // mouse vertical move -> x-axis rot
+    rVecX = dY * currentPose(cv::Rect(0, 0, 1,
+                                      3));  // mouse vertical move -> x-axis rot
     cv::Rodrigues(rVecX, rMatX);
     currentPose = rMatX * rMatY * currentPose;
     setCurrentCameraPose();

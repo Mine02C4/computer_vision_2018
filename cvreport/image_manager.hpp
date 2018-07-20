@@ -7,12 +7,14 @@
 
 namespace fs = std::filesystem;
 
-class ImageManager
-{
-public:
-	static std::tuple<fs::path, fs::path> GetStereoVideoPath(std::string basename);
-private:
-	static fs::path root;
+class ImageManager {
+ public:
+  static std::tuple<std::string, std::string> GetStereoVideoPath(
+      std::string basename);
+  static fs::path GetImagePath(std::string filename);
+
+ private:
+  static fs::path root;
 };
 
 #endif  // CVREPORT_IMAGEMANAGER_H_

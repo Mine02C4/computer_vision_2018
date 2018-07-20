@@ -6,22 +6,25 @@
 
 #include "main.hpp"
 
-class StereoTest : public SubProcedure
-{
-public:
-	void Run();
-private:
+class StereoTest : public SubProcedure {
+ public:
+  void Run();
+
+ private:
+  static std::string GetLeftImagePath(int i);
+  static std::string GetRightImagePath(int i);
 };
 
-class Stereo
-{
-public:
-  static int CalcDisparity(cv::Mat& left_img, cv::Mat& right_img, cv::Mat& disparity);
+class Stereo {
+ public:
+  static int CalcDisparity(cv::Mat& left_img, cv::Mat& right_img,
+                           cv::Mat& disparity);
   static void RenderDisparity(cv::Mat& disparity, int numberOfDisparities);
   void RenderGLWindow();
   void SetData(cv::Mat& img3d);
   Stereo();
-private:
+
+ private:
   int gl_window_;
   cv::Mat img3d_;
 };
